@@ -1,0 +1,6 @@
+3 5
+pear apple mango kiwi plum
+3
+mango
+2
+banana cherry

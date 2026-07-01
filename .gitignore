@@ -1,0 +1,96 @@
+# macOS system files
+.DS_Store
+*.dSYM
+*.dSYM/**/*
+*.app/
+*.app/**/*
+
+# Compiled binaries (object files, Windows PE)
+*.o
+*.obj
+*.exe
+*.out
+*.ilk
+*.pdb
+*.idb
+*.ipch
+*.bin
+
+# Visual Studio IDE
+.vs/
+Debug/
+Release/
+x64/
+ARM64/
+*.sdf
+*.suo
+*.user
+*.tlog
+*.log
+*.recipe
+*.lastbuildstate
+
+# Qt / CMake build artifacts
+build/
+build-local/
+build-qmake/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.ninja
+*.qmake.stash
+*.pro.user*
+**/Makefile
+**/Makefile.Debug
+**/Makefile.Release
+target_wrapper.sh
+**/target_wrapper.sh
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+mocs_compilation.cpp
+*_autogen/
+*.moc
+object_script.*
+.qmake.cache
+.qtc_clangd/
+QMAKESPEC
+
+# Temp files from editors
+tempCodeRunnerFile.cpp
+
+# Archives (already extracted)
+*.zip
+*.tar
+*.gz
+*.rar
+
+# Compiled binaries without extension
+**/main
+**/commonfile
+**/fileCommon
+**/problem1-5
+**/demo_main
+**/demo_main_char
+**/demo_main_double
+**/demo_main_string
+**/learn_main
+**/MyList
+**/testing-myclass-integer
+!**/testing-myclass-integer/
+**/testing-myclass-integer-Makefile
+
+# prob_* binaries (but NOT sources)
+**/prob_*
+!**/prob_*.cpp
+!**/prob_*.h
+!**/prob_*.hpp
+!**/prob_*.txt
+
+# task* binaries (but NOT sources)
+**/task*
+!**/task*.cpp
+!**/task*.h
+!**/task*.hpp
+!**/task*.txt
