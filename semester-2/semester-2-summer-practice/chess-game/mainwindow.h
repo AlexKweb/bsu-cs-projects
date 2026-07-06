@@ -17,6 +17,8 @@ struct Move
     int fromCol;
     int toRow;
     int toCol;
+    Type pieceType = Type::Pawn;
+    Type promotionType = Type::Queen;
 };
 
 class MainWindow : public QMainWindow {
@@ -43,6 +45,9 @@ private:
     void updateBoard();
     void resetSelection();
     void setStatus(const QString &text);
+    Type choosePromotionType();
+    void updateMoveHistoryList();
+    bool isHighlightedMove(int row, int col, const QVector<QPair<int,int>> &moves) const;
 
     void updateTimerLabels();
     void resetTimers();
@@ -51,6 +56,10 @@ private:
 
     static QString moveToString(const Move &m);
     static bool stringToMove(const QString &s, Move &m);
+    static QString moveDescription(const Move &m, int index);
+    static QString pieceName(Type type);
+    static QChar promotionChar(Type type);
+    static Type promotionTypeFromChar(QChar ch);
 
     Ui::MainWindow *ui;
     Board *board;

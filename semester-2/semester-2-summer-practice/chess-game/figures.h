@@ -25,6 +25,7 @@ public:
 
     QChar symbol() const;
     virtual bool isValidMove(int toRow, int toCol, const Board &board) const = 0;
+    virtual bool attacksSquare(int toRow, int toCol, const Board &board) const = 0;
     virtual Figure *clone() const = 0;
 
 protected:
@@ -41,6 +42,7 @@ class Pawn : public Figure {
 public:
     using Figure::Figure;
     bool isValidMove(int toRow, int toCol, const Board &board) const override;
+    bool attacksSquare(int toRow, int toCol, const Board &board) const override;
     Pawn *clone() const override { return new Pawn(*this); }
 };
 
@@ -48,6 +50,7 @@ class Rook : public Figure {
 public:
     using Figure::Figure;
     bool isValidMove(int toRow, int toCol, const Board &board) const override;
+    bool attacksSquare(int toRow, int toCol, const Board &board) const override;
     Rook *clone() const override { return new Rook(*this); }
 };
 
@@ -55,6 +58,7 @@ class Knight : public Figure {
 public:
     using Figure::Figure;
     bool isValidMove(int toRow, int toCol, const Board &board) const override;
+    bool attacksSquare(int toRow, int toCol, const Board &board) const override;
     Knight *clone() const override { return new Knight(*this); }
 };
 
@@ -62,6 +66,7 @@ class Bishop : public Figure {
 public:
     using Figure::Figure;
     bool isValidMove(int toRow, int toCol, const Board &board) const override;
+    bool attacksSquare(int toRow, int toCol, const Board &board) const override;
     Bishop *clone() const override { return new Bishop(*this); }
 };
 
@@ -69,6 +74,7 @@ class Queen : public Figure {
 public:
     using Figure::Figure;
     bool isValidMove(int toRow, int toCol, const Board &board) const override;
+    bool attacksSquare(int toRow, int toCol, const Board &board) const override;
     Queen *clone() const override { return new Queen(*this); }
 };
 
@@ -76,6 +82,7 @@ class King : public Figure {
 public:
     using Figure::Figure;
     bool isValidMove(int toRow, int toCol, const Board &board) const override;
+    bool attacksSquare(int toRow, int toCol, const Board &board) const override;
     King *clone() const override { return new King(*this); }
 };
 

@@ -41,6 +41,7 @@ QChar Figure::symbol() const {
 // ─── Pawn ──────────────────────────────────────────────────────────────────
 
 bool Pawn::isValidMove(int toRow, int toCol, const Board &board) const {
+    if (!isOnBoard(toRow, toCol)) return false;
     int dir = (color == Color::White) ? -1 : 1;
     int startRow = (color == Color::White) ? 6 : 1;
     int dr = toRow - row;
@@ -56,8 +57,16 @@ bool Pawn::isValidMove(int toRow, int toCol, const Board &board) const {
     if (dc == 1 && dr == dir) {
         if (hasEnemy(toRow, toCol, board))
             return true;
+        if (board.isEnPassantMove(row, col, toRow, toCol))
+            return true;
     }
     return false;
+}
+
+bool Pawn::attacksSquare(int toRow, int toCol, const Board &) const {
+    if (!isOnBoard(toRow, toCol)) return false;
+    int dir = (color == Color::White) ? -1 : 1;
+    return toRow - row == dir && qAbs(toCol - col) == 1;
 }
 
 // ─── Rook ──────────────────────────────────────────────────────────────────
@@ -70,6 +79,13 @@ bool Rook::isValidMove(int toRow, int toCol, const Board &board) const {
     if (!isPathClear(toRow, toCol, board)) return false;
     const Figure *target = board.getFigure(toRow, toCol);
     return !target || target->getColor() != color;
+}
+
+bool Rook::attacksSquare(int toRow, int toCol, const Board &board) const {
+    if (!isOnBoard(toRow, toCol)) return false;
+    if (row == toRow && col == toCol) return false;
+    if (row != toRow && col != toCol) return false;
+    return isPathClear(toRow, toCol, board);
 }
 
 // ─── Knight ────────────────────────────────────────────────────────────────
@@ -85,6 +101,13 @@ bool Knight::isValidMove(int toRow, int toCol, const Board &board) const {
     return !target || target->getColor() != color;
 }
 
+bool Knight::attacksSquare(int toRow, int toCol, const Board &) const {
+    if (!isOnBoard(toRow, toCol)) return false;
+    int dr = qAbs(toRow - row);
+    int dc = qAbs(toCol - col);
+    return (dr == 1 && dc == 2) || (dr == 2 && dc == 1);
+}
+
 // ─── Bishop ────────────────────────────────────────────────────────────────
 
 bool Bishop::isValidMove(int toRow, int toCol, const Board &board) const {
@@ -94,6 +117,13 @@ bool Bishop::isValidMove(int toRow, int toCol, const Board &board) const {
     if (!isPathClear(toRow, toCol, board)) return false;
     const Figure *target = board.getFigure(toRow, toCol);
     return !target || target->getColor() != color;
+}
+
+bool Bishop::attacksSquare(int toRow, int toCol, const Board &board) const {
+    if (!isOnBoard(toRow, toCol)) return false;
+    if (row == toRow && col == toCol) return false;
+    if (qAbs(toRow - row) != qAbs(toCol - col)) return false;
+    return isPathClear(toRow, toCol, board);
 }
 
 // ─── Queen ─────────────────────────────────────────────────────────────────
@@ -109,13 +139,30 @@ bool Queen::isValidMove(int toRow, int toCol, const Board &board) const {
     return !target || target->getColor() != color;
 }
 
+bool Queen::attacksSquare(int toRow, int toCol, const Board &board) const {
+    if (!isOnBoard(toRow, toCol)) return false;
+    if (row == toRow && col == toCol) return false;
+    bool straight = (row == toRow || col == toCol);
+    bool diagonal = (qAbs(toRow - row) == qAbs(toCol - col));
+    if (!straight && !diagonal) return false;
+    return isPathClear(toRow, toCol, board);
+}
+
 // ─── King ──────────────────────────────────────────────────────────────────
 
 bool King::isValidMove(int toRow, int toCol, const Board &board) const {
     if (!isOnBoard(toRow, toCol)) return false;
     if (row == toRow && col == toCol) return false;
+    if (row == toRow && col == 4 && qAbs(toCol - col) == 2)
+        return board.canCastle(color, toCol > col);
     if (qAbs(toRow - row) > 1 || qAbs(toCol - col) > 1) return false;
     const Figure *target = board.getFigure(toRow, toCol);
     if (target && target->getColor() == color) return false;
-    return !board.isSquareAttacked(toRow, toCol, opposite(color));
+    return true;
+}
+
+bool King::attacksSquare(int toRow, int toCol, const Board &) const {
+    if (!isOnBoard(toRow, toCol)) return false;
+    if (row == toRow && col == toCol) return false;
+    return qAbs(toRow - row) <= 1 && qAbs(toCol - col) <= 1;
 }

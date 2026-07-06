@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QMessageBox>
 #include <QTime>
 
@@ -29,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->pushButton_7->setEnabled(false);
     ui->pushButton_8->setEnabled(false);
+    updateMoveHistoryList();
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -79,6 +81,7 @@ void MainWindow::onSquareClicked(int row, int col)
 
     if (row == selectedRow && col == selectedCol) {
         resetSelection();
+        updateBoard();
         return;
     }
 
@@ -89,9 +92,18 @@ void MainWindow::onSquareClicked(int row, int col)
         return;
     }
 
-    if (board->moveFigure(selectedRow, selectedCol, row, col)) {
-        moveHistory.append(Move{selectedRow, selectedCol, row, col});
+    Type promotionType = Type::Queen;
+    if (const Figure *selected = board->getFigure(selectedRow, selectedCol)) {
+        if (selected->getType() == Type::Pawn && (row == 0 || row == 7))
+            promotionType = choosePromotionType();
+    }
+
+    const Figure *moving = board->getFigure(selectedRow, selectedCol);
+    Type pieceType = moving ? moving->getType() : Type::Pawn;
+    if (board->moveFigure(selectedRow, selectedCol, row, col, promotionType)) {
+        moveHistory.append(Move{selectedRow, selectedCol, row, col, pieceType, promotionType});
         resetSelection();
+        updateMoveHistoryList();
         updateBoard();
     } else {
         resetSelection();
@@ -116,6 +128,7 @@ void MainWindow::onNewGame()
     ui->pushButton_3->setText("Таймер");
     ui->pushButton_7->setEnabled(false);
     ui->pushButton_8->setEnabled(false);
+    updateMoveHistoryList();
 
     updateBoard();
     setStatus("Новая партия — ход белых");
@@ -143,6 +156,13 @@ void MainWindow::onLoadPosition()
     if (path.isEmpty()) return;
     if (board->loadFromFile(path)) {
         resetSelection();
+        moveHistory.clear();
+        replayMoves.clear();
+        replayIndex = 0;
+        replayMode = false;
+        ui->pushButton_7->setEnabled(false);
+        ui->pushButton_8->setEnabled(false);
+        updateMoveHistoryList();
         updateBoard();
         setStatus("Position loaded");
     } else {
@@ -291,6 +311,7 @@ void MainWindow::onLoadGameHistory()
     ui->pushButton_7->setEnabled(true);
     ui->pushButton_8->setEnabled(false);
 
+    updateMoveHistoryList();
     updateBoard();
     setStatus(QString("Воспроизведение — ход 1 из %1").arg(replayMoves.size()));
 }
@@ -305,19 +326,28 @@ void MainWindow::onNextMove()
         return;
 
     const Move &m = replayMoves[replayIndex];
-    board->moveFigure(m.fromRow, m.fromCol, m.toRow, m.toCol);
+    const Figure *moving = board->getFigure(m.fromRow, m.fromCol);
+    Type pieceType = moving ? moving->getType() : Type::Pawn;
+    if (!board->moveFigure(m.fromRow, m.fromCol, m.toRow, m.toCol, m.promotionType)) {
+        setStatus(QString("Невалидный ход в файле: %1").arg(moveToString(m)));
+        return;
+    }
+
+    Move applied = m;
+    applied.pieceType = pieceType;
+    moveHistory.append(applied);
     replayIndex++;
 
     // Clear board selection so the view is clean
     resetSelection();
     updateBoard();
+    updateMoveHistoryList();
 
     bool finished = (replayIndex >= replayMoves.size());
     ui->pushButton_8->setEnabled(true);
     ui->pushButton_7->setEnabled(!finished);
 
     if (finished) {
-        replayMode = false;
         setStatus("Воспроизведение завершено");
     } else {
         setStatus(QString("Воспроизведение — ход %1 из %2")
@@ -327,15 +357,16 @@ void MainWindow::onNextMove()
 
 void MainWindow::onPreviousMove()
 {
-    if (!replayMode)
-        return;
     if (replayIndex <= 0)
         return;
 
     replayIndex--;
     board->undoMove();
+    if (!moveHistory.isEmpty())
+        moveHistory.removeLast();
     resetSelection();
     updateBoard();
+    updateMoveHistoryList();
 
     ui->pushButton_8->setEnabled(replayIndex > 0);
     ui->pushButton_7->setEnabled(true);
@@ -354,6 +385,15 @@ void MainWindow::resetSelection()
 
 void MainWindow::updateBoard()
 {
+    QVector<QPair<int,int>> validMoves;
+    if (selectedRow != -1)
+        validMoves = board->getValidMoves(selectedRow, selectedCol);
+
+    bool hasLastMove = !moveHistory.isEmpty();
+    Move lastMove;
+    if (hasLastMove)
+        lastMove = moveHistory.last();
+
     for (int r = 0; r < 8; ++r) {
         for (int c = 0; c < 8; ++c) {
             QPushButton *btn = boardButtons[r][c];
@@ -362,28 +402,39 @@ void MainWindow::updateBoard()
             const Figure *f = board->getFigure(r, c);
             bool isLight = (r + c) % 2 == 0;
             QString bg = isLight ? LIGHT : DARK;
+            QString border = "none";
+            bool isSelected = (r == selectedRow && c == selectedCol);
+            bool isMoveTarget = isHighlightedMove(r, c, validMoves);
+            bool isLastMoveSquare = hasLastMove
+                && ((r == lastMove.fromRow && c == lastMove.fromCol)
+                    || (r == lastMove.toRow && c == lastMove.toCol));
 
             btn->setText(f ? QString(f->symbol()) : QString());
 
-            if (r == selectedRow && c == selectedCol) {
-                QString selBg = isLight ? "rgb(255, 235, 150)" : "rgb(220, 190, 100)";
-                QString textColor = (f && f->getColor() == Color::White) ? "#ffffff" : "#000000";
-                btn->setStyleSheet(QString(
-                    "background-color: %1; color: %2; border: none; font-size: 48px;")
-                    .arg(selBg).arg(textColor));
-                continue;
+            if (isLastMoveSquare) {
+                bg = isLight ? "rgb(178, 205, 235)" : "rgb(130, 165, 205)";
+                border = "2px solid rgb(60, 105, 155)";
             }
 
-            if (f) {
-                QString textColor = (f->getColor() == Color::White) ? "#ffffff" : "#000000";
-                btn->setStyleSheet(QString(
-                    "background-color: %1; color: %2; border: none; font-size: 48px;")
-                    .arg(bg).arg(textColor));
-            } else {
-                btn->setStyleSheet(QString(
-                    "background-color: %1; color: #000000; border: none; font-size: 48px;")
-                    .arg(bg));
+            if (isMoveTarget) {
+                if (f) {
+                    bg = isLight ? "rgb(235, 145, 125)" : "rgb(205, 105, 90)";
+                    border = "3px solid rgb(150, 55, 45)";
+                } else {
+                    bg = isLight ? "rgb(178, 220, 145)" : "rgb(130, 178, 105)";
+                    border = "3px solid rgb(70, 130, 65)";
+                }
             }
+
+            if (isSelected) {
+                bg = isLight ? "rgb(255, 235, 150)" : "rgb(220, 190, 100)";
+                border = "3px solid rgb(150, 115, 35)";
+            }
+
+            QString textColor = (f && f->getColor() == Color::White) ? "#ffffff" : "#000000";
+            btn->setStyleSheet(QString(
+                "background-color: %1; color: %2; border: %3; font-size: 48px;")
+                .arg(bg).arg(textColor).arg(border));
         }
     }
 
@@ -422,6 +473,38 @@ void MainWindow::setStatus(const QString &text)
     statusBar()->showMessage(text);
 }
 
+bool MainWindow::isHighlightedMove(int row, int col, const QVector<QPair<int,int>> &moves) const
+{
+    for (const auto &move : moves)
+        if (move.first == row && move.second == col)
+            return true;
+    return false;
+}
+
+Type MainWindow::choosePromotionType()
+{
+    QStringList items;
+    items << "Ферзь" << "Ладья" << "Слон" << "Конь";
+    bool ok = false;
+    QString selected = QInputDialog::getItem(this, "Превращение пешки",
+                                             "Выберите фигуру:", items, 0, false, &ok);
+    if (!ok)
+        return Type::Queen;
+    if (selected == "Ладья") return Type::Rook;
+    if (selected == "Слон") return Type::Bishop;
+    if (selected == "Конь") return Type::Knight;
+    return Type::Queen;
+}
+
+void MainWindow::updateMoveHistoryList()
+{
+    ui->historyList->clear();
+    for (int i = 0; i < moveHistory.size(); ++i)
+        ui->historyList->addItem(moveDescription(moveHistory[i], i));
+    if (!moveHistory.isEmpty())
+        ui->historyList->scrollToBottom();
+}
+
 // ─── Helpers: move ↔ string ───────────────────────────────────────
 
 QString MainWindow::moveToString(const Move &m)
@@ -429,22 +512,74 @@ QString MainWindow::moveToString(const Move &m)
     auto cell = [](int row, int col) {
         return QString(QChar('a' + col)) + QString::number(8 - row);
     };
-    return cell(m.fromRow, m.fromCol) + cell(m.toRow, m.toCol);
+    QString text = cell(m.fromRow, m.fromCol) + cell(m.toRow, m.toCol);
+    if (m.pieceType == Type::Pawn && (m.toRow == 0 || m.toRow == 7))
+        text += promotionChar(m.promotionType);
+    return text;
 }
 
 bool MainWindow::stringToMove(const QString &s, Move &m)
 {
-    if (s.size() != 4) return false;
+    if (s.size() != 4 && s.size() != 5) return false;
 
-    int fc = s[0].toLatin1() - 'a';
-    int fr = s[1].digitValue();
-    int tc = s[2].toLatin1() - 'a';
-    int tr = s[3].digitValue();
+    QString move = s.toLower();
+    int fc = move[0].toLatin1() - 'a';
+    int fr = move[1].digitValue();
+    int tc = move[2].toLatin1() - 'a';
+    int tr = move[3].digitValue();
 
     if (fc < 0 || fc > 7 || tc < 0 || tc > 7) return false;
     if (fr < 1 || fr > 8 || tr < 1 || tr > 8) return false;
 
     m.fromCol = fc; m.fromRow = 8 - fr;
     m.toCol   = tc; m.toRow   = 8 - tr;
+    if (move.size() == 5)
+        m.promotionType = promotionTypeFromChar(move[4]);
     return true;
+}
+
+QString MainWindow::moveDescription(const Move &m, int index)
+{
+    QString prefix = (index % 2 == 0)
+        ? QString("%1. ").arg(index / 2 + 1)
+        : QString("... ");
+    QString suffix;
+    if (m.pieceType == Type::Pawn && (m.toRow == 0 || m.toRow == 7))
+        suffix = QString("=%1").arg(pieceName(m.promotionType));
+    return prefix + pieceName(m.pieceType) + " " + moveToString(m).left(4).insert(2, "-") + suffix;
+}
+
+QString MainWindow::pieceName(Type type)
+{
+    switch (type) {
+    case Type::Pawn: return "Пешка";
+    case Type::Rook: return "Ладья";
+    case Type::Knight: return "Конь";
+    case Type::Bishop: return "Слон";
+    case Type::Queen: return "Ферзь";
+    case Type::King: return "Король";
+    }
+    return "Фигура";
+}
+
+QChar MainWindow::promotionChar(Type type)
+{
+    switch (type) {
+    case Type::Rook: return 'r';
+    case Type::Bishop: return 'b';
+    case Type::Knight: return 'n';
+    case Type::Queen:
+    default: return 'q';
+    }
+}
+
+Type MainWindow::promotionTypeFromChar(QChar ch)
+{
+    switch (ch.toLower().toLatin1()) {
+    case 'r': return Type::Rook;
+    case 'b': return Type::Bishop;
+    case 'n': return Type::Knight;
+    case 'q':
+    default: return Type::Queen;
+    }
 }
