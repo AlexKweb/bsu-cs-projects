@@ -9,6 +9,12 @@
 
 #include "figures.h"
 
+struct UndoInfo {
+    int fromRow = -1, fromCol = -1, toRow = -1, toCol = -1;
+    std::unique_ptr<Figure> captured;
+    Color turnBefore = Color::White;
+};
+
 class Board : public QObject {
     Q_OBJECT
 public:
@@ -19,6 +25,9 @@ public:
     void clear();
 
     bool moveFigure(int fromRow, int fromCol, int toRow, int toCol);
+    void undoMove();
+    bool canUndo() const { return undoInfo.fromRow != -1; }
+
     QVector<QPair<int,int>> getValidMoves(int row, int col) const;
 
     const Figure *getFigure(int row, int col) const;
@@ -43,6 +52,7 @@ private:
 
     std::array<std::array<std::unique_ptr<Figure>, 8>, 8> squares;
     Color currentTurn = Color::White;
+    UndoInfo undoInfo;
 };
 
 #endif

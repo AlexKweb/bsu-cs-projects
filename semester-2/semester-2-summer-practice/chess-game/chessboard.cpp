@@ -14,6 +14,7 @@ void Board::clear() {
         for (auto &cell : row)
             cell.reset();
     currentTurn = Color::White;
+    undoInfo = UndoInfo{};
 }
 
 static std::unique_ptr<Figure> makeFigure(Color c, Type t, int r, int col) {
@@ -76,6 +77,14 @@ bool Board::moveFigure(int fromRow, int fromCol, int toRow, int toCol) {
     if (!f->isValidMove(toRow, toCol, *this)) return false;
     if (wouldBeInCheck(fromRow, fromCol, toRow, toCol)) return false;
 
+    // Save undo info before executing
+    undoInfo.fromRow = fromRow;
+    undoInfo.fromCol = fromCol;
+    undoInfo.toRow   = toRow;
+    undoInfo.toCol   = toCol;
+    undoInfo.captured = std::move(squares[toRow][toCol]);
+    undoInfo.turnBefore = currentTurn;
+
     // Execute move
     squares[toRow][toCol] = std::move(squares[fromRow][fromCol]);
     f = squares[toRow][toCol].get();
@@ -96,6 +105,30 @@ bool Board::moveFigure(int fromRow, int fromCol, int toRow, int toCol) {
     }
 
     return true;
+}
+
+void Board::undoMove()
+{
+    if (undoInfo.fromRow == -1)
+        return;
+
+    // Move piece back to original square
+    squares[undoInfo.fromRow][undoInfo.fromCol] =
+        std::move(squares[undoInfo.toRow][undoInfo.toCol]);
+    // Restore captured piece (or null)
+    squares[undoInfo.toRow][undoInfo.toCol] =
+        std::move(undoInfo.captured);
+
+    // Update the moved piece's internal position
+    Figure *f = squares[undoInfo.fromRow][undoInfo.fromCol].get();
+    if (f)
+        f->setPosition(undoInfo.fromRow, undoInfo.fromCol);
+
+    // Restore turn
+    currentTurn = undoInfo.turnBefore;
+
+    // Invalidate undo
+    undoInfo.fromRow = -1;
 }
 
 QVector<QPair<int,int>> Board::getValidMoves(int row, int col) const {
