@@ -62,6 +62,7 @@ tempCodeRunnerFile.cpp
 
 # Archives (already extracted)
 *.zip
+!**/graph-gui-*.zip
 *.tar
 *.gz
 *.rar
