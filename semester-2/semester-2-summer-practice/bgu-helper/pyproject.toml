@@ -1,0 +1,23 @@
+[project]
+name = "bgu-helper"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "AlexKweb", email = "sashaklimovking@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.141.1",
+    "openpyxl>=3.1.5",
+    "psycopg[binary]>=3.3.5",
+    "requests>=2.34.2",
+    "uvicorn>=0.52.4",
+]
+
+[project.scripts]
+bgu-helper = "bgu_helper:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"

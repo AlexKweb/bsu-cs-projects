@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <title>BGU Helper</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(-90deg,
+                    #e5eef9 0%,
+                    #f5f0f3 35%,
+                    #e5eef9 70%,
+                    #e5eef9 100%);
+        }
+
+        .container {
+            max-width: 800px;
+            min-width: 400px;
+            margin: 40px auto;
+        }
+
+        header {
+
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 25px;
+            margin: 0;
+            margin-bottom: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
+        }
+
+        .weather-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .weather-card h2 {
+            margin-top: 15px;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .big {
+            font-size: 32px;
+            color: #f59e0b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+        }
+
+        td,
+        th {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <header>
+            <h1>BGU Helper</h1>
+            <p>Информация для студента</p>
+        </header>
+
+        <div class="card weather-card">
+            <h2>☀️ Погода в Минске:</h2>
+            <p class="big"><!-- WEATHER -->°C</p>
+        </div>
+
+        <div class="card">
+            <h2> 📅 Расписание БГУ группа 7 А</h2>
+            <form action="/update-schedule" method="post">
+                <button type="submit">↓ Загрузить расписание из гугл таблицы</button>
+            </form>
+            <table>
+                <!-- SCHEDULE -->
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>📰 Новости БГУ</h2>
+
+            <form action="/update-news" method="post">
+                <button type="submit">↻ Обновить новости в базе данных</button>
+            </form>
+
+            <p><!-- LAST_UPDATE -->Последнее обновление: 06.09.2026 19:39</p>
+
+            <table>
+                <tr>
+                    <th>Дата</th>
+                    <th>Новость</th>
+                </tr>
+
+                <!-- NEWS -->
+            </table>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>
