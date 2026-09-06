@@ -55,38 +55,38 @@ def parse_news_date(date_string):
     )
 
 
-def load_news():
+async def load_news() -> str:
     rows_for_news = ""
     try:
-        connection = psycopg.connect(DATABASE)
+        async with await psycopg.AsyncConnection.connect(DATABASE) as connection:
 
-        news = connection.execute(
-            "SELECT date, title, href FROM news"
-        ).fetchall()
+            cursor = await connection.execute(
+                "SELECT date, title, href FROM news"
+            )
 
-        news = sorted(
-            news,
-            key=lambda item: parse_news_date(item[0]),
-            reverse=True
-        )
+            news = await cursor.fetchall()
 
-        connection.close()
+            news = sorted(
+                news,
+                key=lambda item: parse_news_date(item[0]),
+                reverse=True
+            )
 
-        logger.info(f"Из базы загружено новостей: {len(news)}")
+            logger.info(f"Из базы загружено новостей: {len(news)}")
 
-        for item in news:
-            rows_for_news += f"""
-                <tr>
-                    <td>{item[0]}</td>
-                    <td>
-                        <a href="https://bsu.by{item[2]}">{item[1]}</a>
-                    </td>
-                </tr>
-                """
+            for item in news:
+                rows_for_news += f"""
+                    <tr>
+                        <td>{item[0]}</td>
+                        <td>
+                            <a href="https://bsu.by{item[2]}">{item[1]}</a>
+                        </td>
+                    </tr>
+                    """
         return rows_for_news
     except Exception as e:
         logger.error(f"Ошибка при загрузке новостей: {e}")
-        return ""
+        return "<tr><td colspan='2'>Ошибка при загрузке новостей</td></tr>"
 
 
 def get_news():

@@ -3,11 +3,12 @@ from fastapi.responses import RedirectResponse, HTMLResponse
 from datetime import datetime
 import requests
 import uvicorn
+import asyncio
+
 
 from bgu_helper.database import load_news, create_table, get_news
 from bgu_helper.logger import logger
-from bgu_helper.parser import get_schedule, load_schedule
-
+from bgu_helper.parser import get_schedule, load_schedule, get_weather
 
 app = FastAPI()
 
@@ -17,14 +18,16 @@ schedule = None
 
 
 @app.get("/")
-def home():
+async def home():
     try:
         logger.info("Открыта главная страница")
 
-        rows_for_news = load_news()
+        weather_task = asyncio.create_task(get_weather())
+        news_task = asyncio.create_task(load_news())
 
-        # ------------------------------------
-
+        weather = await weather_task
+        rows_for_news = await news_task
+        #
         if schedule:
             rows_for_schedule = load_schedule(schedule)
         else:
@@ -34,28 +37,12 @@ def home():
                     <td colspan="2">Расписание пока не загружено</td>
                 </tr>"""
 
-        # ------------------------------------
-        try:
-            response = requests.get(
-                "https://api.open-meteo.com/v1/forecast",
-                params={
-                    "latitude": 53.9,
-                    "longitude": 27.5667,
-                    "current": "temperature_2m"
-                }
-            )
-            response.raise_for_status()
-            weather = response.json()["current"]["temperature_2m"]
-            logger.info(f"Получена погода: {weather}°C")
-        except Exception as e:
-            logger.error(f"Ошибка получения погоды: {e}")
-            weather = "Не удалось получить погоду"
-
         with open("src/bgu_helper/index.html", encoding="utf-8") as f:
             html = f.read()
-        html = html.replace("<!-- NEWS -->", rows_for_news)
-        html = html.replace("<!-- SCHEDULE -->", rows_for_schedule)
+
         html = html.replace("<!-- WEATHER -->", str(weather))
+        html = html.replace("<!-- SCHEDULE -->", rows_for_schedule)
+        html = html.replace("<!-- NEWS -->", rows_for_news)
 
         return HTMLResponse(html)
 
