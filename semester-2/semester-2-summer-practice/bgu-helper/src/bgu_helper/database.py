@@ -9,19 +9,17 @@ DATABASE = "dbname=bgu_helper"
 
 def create_table():
     try:
-        connection = psycopg.connect(DATABASE)
+        with psycopg.connect(DATABASE) as connection:
+            connection.execute("""
+            CREATE TABLE IF NOT EXISTS news (
+                id SERIAL PRIMARY KEY,
+                title TEXT,
+                date TEXT,
+                href TEXT
+            )
+            """)
 
-        connection.execute("""
-        CREATE TABLE IF NOT EXISTS news (
-            id SERIAL PRIMARY KEY,
-            title TEXT,
-            date TEXT,
-            href TEXT
-        )
-        """)
-
-        connection.commit()
-        connection.close()
+            connection.commit()
 
         logger.info("Таблица news готова к работе")
 
@@ -133,10 +131,10 @@ def get_news():
         logger.info(f"Добавлено новых новостей: {added}")
         logger.info(f"Уже были в базе: {skipped}")
 
-        with open("index.html", encoding="utf-8") as f:
+        with open("src/bgu_helper/index.html", encoding="utf-8") as f:
             lines = f.readlines()
 
-        with open("index.html", "w", encoding="utf-8") as f:
+        with open("src/bgu_helper/index.html", "w", encoding="utf-8") as f:
             for line in lines:
                 if "<!-- LAST_UPDATE -->" in line:
                     line = (

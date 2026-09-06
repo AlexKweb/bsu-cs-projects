@@ -10,21 +10,25 @@ url = "https://docs.google.com/spreadsheets/d/1Bi5nCoVbFyV7i-0ELHBzgozbzlAdzBfP/
 # print(sheet.cell(21, 1).value)
 
 async def get_weather():
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            "https://api.open-meteo.com/v1/forecast",
-            params={
-                "latitude": 53.9,
-                "longitude": 27.5667,
-                "current": "temperature_2m"
-            }
-        ) as response:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": 53.9,
+                    "longitude": 27.5667,
+                    "current": "temperature_2m"
+                }
+            ) as response:
 
-            response.raise_for_status()
+                response.raise_for_status()
 
-            data = await response.json()
+                data = await response.json()
 
-            return data["current"]["temperature_2m"]
+                return data["current"]["temperature_2m"]
+    except Exception as e:
+        logger.error(f"Ошибка получения погоды: {e}")
+        return "Не удалось получить погоду"
 
 
 def get_schedule() -> dict[str, dict[str, list[str | None]]]:
